@@ -1,12 +1,7 @@
-﻿using Microsoft.Win32;
+﻿
+using Microsoft.Win32;
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace AutoStartApplication
@@ -21,25 +16,22 @@ namespace AutoStartApplication
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            // Add the application to startup
             AddToStartup();
-            MessageBox.Show("Application has started!");
+            //MessageBox.Show("Application has started!");
         }
 
         private void AddToStartup()
         {
             try
             {
-                string appName = "AutoStartApp"; // Name of the application in the registry
-                string exePath = Application.ExecutablePath; // Full path to the executable
+                string appName = "AutoStartApp";
+                string exePath = Application.ExecutablePath; 
 
-                // Open the registry key for the current user's startup programs
                 RegistryKey registryKey = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
 
-                // Add or update the registry entry
                 registryKey.SetValue(appName, exePath);
 
-                MessageBox.Show("Application is set to run at startup.");
+                //MessageBox.Show("Application is set to run at startup.");
             }
             catch (Exception ex)
             {
@@ -47,9 +39,22 @@ namespace AutoStartApplication
             }
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        private void btnSync_Click(object sender, EventArgs e)
         {
-            MessageBox.Show("Button click!");
+            MessageBox.Show("Home page opened");
+        }
+
+        private void btnHistory_Click(object sender, EventArgs e)
+        {
+            this.Hide();
+            HistoryForm historyForm = new HistoryForm();
+            historyForm.Show();
+
+        }
+
+        private void syncbtn_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show("sync functionality");
         }
     }
 }
