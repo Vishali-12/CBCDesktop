@@ -1,0 +1,29 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.11.35327.3
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoStartApplication", "AutoStartApplication\AutoStartApplication.csproj", "{0921C595-E13C-4B58-A51B-7E7F489AE85B}"
+EndProject
+Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "AutoStartSetup", "AutoStartSetup\AutoStartSetup.vdproj", "{0B8A7246-D55F-4143-8F89-3F9E564E5B41}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0921C595-E13C-4B58-A51B-7E7F489AE85B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0921C595-E13C-4B58-A51B-7E7F489AE85B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0921C595-E13C-4B58-A51B-7E7F489AE85B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0921C595-E13C-4B58-A51B-7E7F489AE85B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0B8A7246-D55F-4143-8F89-3F9E564E5B41}.Debug|Any CPU.ActiveCfg = Debug
+		{0B8A7246-D55F-4143-8F89-3F9E564E5B41}.Release|Any CPU.ActiveCfg = Release
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {5638AB6C-E27B-49B9-8426-4C1C9F3B52E0}
+	EndGlobalSection
+EndGlobal
