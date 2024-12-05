@@ -78,7 +78,7 @@ namespace AutoStartApplication.APIs
             return data;
         }
 
-        public async Task <List<string>> ExtractData(string xmlResponse)
+        public async Task<List<string>> ExtractData(string xmlResponse)
         {
 
             // Load the XML string
@@ -99,21 +99,21 @@ namespace AutoStartApplication.APIs
                 // Trim and clean up extra spaces, then add the line to the list
                 punchListData.Add(line.Trim());
             }
-            
-            var punchRecordList = GetPunchRecords(punchListData).OrderBy(r=>r.EmployeeId);
+
+            var punchRecordList = GetPunchRecords(punchListData).OrderBy(r => r.EmployeeId);
             return punchListData;
-          
+
         }
 
-        public  List<PunchRecordModel> GetPunchRecords(List<string> data)
+        public List<PunchRecordModel> GetPunchRecords(List<string> data)
         {
             List<PunchRecordModel> punchRecords = new List<PunchRecordModel>();
 
             foreach (var entry in data)
             {
-
                 // Split the string using tab and space as delimiters
                 string[] parts = entry.Split(new[] { '\t', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
                 // Add the record to the list
                 punchRecords.Add(new PunchRecordModel
                 {
@@ -124,9 +124,107 @@ namespace AutoStartApplication.APIs
                 });
             }
 
+            // Step 2: Transform into AttendanceLogModel
+            List<PunchRecordRequestModel> attendanceLogs = new List<PunchRecordRequestModel>();
+
+            var groupedRecords = punchRecords
+                .GroupBy(r => new { r.EmployeeId, r.Date }) // Group by EmployeeId and Date
+                .ToList();
+
+            foreach (var group in groupedRecords)
+            {
+                // Get all IN and OUT records for the current group
+                var inRecords = group.Where(r => r.Status == "in").OrderBy(r => r.Time).ToList();
+                var outRecords = group.Where(r => r.Status == "out").OrderBy(r => r.Time).ToList();
+
+                int inIndex = 0, outIndex = 0;
+
+                while (inIndex < inRecords.Count || outIndex < outRecords.Count)
+                {
+                    string inTime = null;
+                    string outTime = null;
+
+                    // Check if an "Out" record exists without a preceding "In" record
+                    if (outIndex < outRecords.Count && (inIndex >= inRecords.Count || string.Compare(outRecords[outIndex].Time, inRecords[inIndex].Time) < 0))
+                    {
+                        outTime = outRecords[outIndex].Time;
+                        outIndex++;
+                    }
+                    else if (inIndex < inRecords.Count)
+                    {
+                        inTime = inRecords[inIndex].Time;
+                        if (outIndex < outRecords.Count)
+                        {
+                            outTime = outRecords[outIndex].Time;
+                            outIndex++;
+                        }
+                        inIndex++;
+                    }
+
+                    // Add the paired or unpaired record
+                    attendanceLogs.Add(new PunchRecordRequestModel
+                    {
+                        EmployeeId = group.Key.EmployeeId,
+                        Date = group.Key.Date,
+                        InTime = inTime,
+                        OutTime = outTime
+                    });
+                }
+            }
+            var gg = attendanceLogs;
             return punchRecords;
         }
 
-}
+
+        //public List<PunchRecordModel> GetPunchRecords(List<string> data)
+        //{
+        //    List<PunchRecordModel> punchRecords = new List<PunchRecordModel>();
+
+        //    foreach (var entry in data)
+        //    {
+
+        //        // Split the string using tab and space as delimiters
+        //        string[] parts = entry.Split(new[] { '\t', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        //        // Add the record to the list
+        //        punchRecords.Add(new PunchRecordModel
+        //        {
+        //            EmployeeId = parts[0],
+        //            Date = parts[1],
+        //            Time = parts[2].Substring(0, 5), // Extract hour and minute (HH:mm)
+        //            Status = parts[3]
+        //        });
+        //    }
+        //    // Step 2: Transform into AttendanceLogModel
+        //    List<AttendanceLogModel> attendanceLogs = new List<AttendanceLogModel>();
+
+        //    var groupedRecords = punchRecords
+        //        .GroupBy(r => new { r.EmployeeId, r.Date }) // Group by EmployeeId and Date
+        //        .ToList();
+
+        //    foreach (var group in groupedRecords)
+        //    {
+        //        // Get all IN and OUT records for the current group
+        //        var inRecords = group.Where(r => r.Status == "in").OrderBy(r => r.Time).ToList();
+        //        var outRecords = group.Where(r => r.Status == "out").OrderBy(r => r.Time).ToList();
+
+        //        // Pair IN and OUT records
+        //        int count = Math.Max(inRecords.Count, outRecords.Count);
+
+        //        for (int i = 0; i < count; i++)
+        //        {
+        //            attendanceLogs.Add(new AttendanceLogModel
+        //            {
+        //                EmployeeId = group.Key.EmployeeId,
+        //                Date = group.Key.Date,
+        //                InTime = i < inRecords.Count ? inRecords[i].Time : null,
+        //                OutTime = i < outRecords.Count ? outRecords[i].Time : null
+        //            });
+        //        }
+        //    }
+        //    var dd = attendanceLogs;
+        //    return punchRecords;
+
+        //}
+    }
 }
 
