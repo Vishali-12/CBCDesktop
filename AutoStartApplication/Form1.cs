@@ -1,4 +1,5 @@
 ﻿
+using AutoStartApplication.APIs;
 using Microsoft.Win32;
 using System;
 using System.Drawing;
@@ -51,6 +52,12 @@ namespace AutoStartApplication
         private void Form1_Load(object sender, EventArgs e)
         {
             AddToStartup();
+            SyncData syncData= new SyncData();
+            DateTime yesterdayDate = DateTime.Today.AddDays(-1);
+            string fromDateTime = yesterdayDate.ToString("yyyy-MM-dd HH:mm");
+            string toDateTime = DateTime.Now.ToString("yyyy-MM-dd");
+            var data = syncData.GetData(fromDateTime, toDateTime);
+            //var response = syncData.ExtractData(data);
             //MessageBox.Show("Application has started!");
         }
 
