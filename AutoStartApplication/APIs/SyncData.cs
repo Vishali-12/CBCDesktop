@@ -78,7 +78,7 @@ namespace AutoStartApplication.APIs
             return data;
         }
 
-        public async Task <List<string>> ExtractData(string xmlResponse)
+        public async Task<List<string>> ExtractData(string xmlResponse)
         {
 
             // Load the XML string
@@ -99,13 +99,13 @@ namespace AutoStartApplication.APIs
                 // Trim and clean up extra spaces, then add the line to the list
                 punchListData.Add(line.Trim());
             }
-            
-            var punchRecordList = GetPunchRecords(punchListData).OrderBy(r=>r.EmployeeId);
+
+            var punchRecordList = GetPunchRecords(punchListData).OrderBy(r => r.EmployeeId);
             return punchListData;
-          
+
         }
 
-        public  List<PunchRecordModel> GetPunchRecords(List<string> data)
+        public List<PunchRecordModel> GetPunchRecords(List<string> data)
         {
             List<PunchRecordModel> punchRecords = new List<PunchRecordModel>();
 
@@ -123,10 +123,9 @@ namespace AutoStartApplication.APIs
                     Status = parts[3]
                 });
             }
-
             return punchRecords;
         }
 
-}
+    }
 }
 
