@@ -2,8 +2,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Security.Policy;
+using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using Newtonsoft.Json;
 
 namespace AutoStartApplication.APIs
 {
@@ -123,9 +128,8 @@ namespace AutoStartApplication.APIs
                     Status = parts[3]
                 });
             }
-
             // Step 2: Transform into AttendanceLogModel
-            List<PunchRecordRequestModel> attendanceLogs = new List<PunchRecordRequestModel>();
+            List<AttendanceRecordModel> attendanceLogs = new List<AttendanceRecordModel>();
 
             var groupedRecords = punchRecords
                 .GroupBy(r => new { r.EmployeeId, r.Date }) // Group by EmployeeId and Date
@@ -162,69 +166,52 @@ namespace AutoStartApplication.APIs
                     }
 
                     // Add the paired or unpaired record
-                    attendanceLogs.Add(new PunchRecordRequestModel
+                    attendanceLogs.Add(new AttendanceRecordModel
                     {
                         EmployeeId = group.Key.EmployeeId,
-                        Date = group.Key.Date,
-                        InTime = inTime,
-                        OutTime = outTime
+                        Date = group.Key.Date ?? "1900-01-01",
+                        InTime = inTime ?? "00:00",
+                        OutTime = outTime ?? "00:00",
                     });
                 }
             }
-            var gg = attendanceLogs;
+            //  Post Feched data
+             SendFormDataAsync(attendanceLogs);
+
             return punchRecords;
         }
 
+      
 
-        //public List<PunchRecordModel> GetPunchRecords(List<string> data)
-        //{
-        //    List<PunchRecordModel> punchRecords = new List<PunchRecordModel>();
+        public async Task SendFormDataAsync(List<AttendanceRecordModel> attendanceRecords)
+        {
+            var client = new HttpClient();
 
-        //    foreach (var entry in data)
-        //    {
+            // Set the API endpoint
+            var url = "https://crm.creativebuffer.com/api/essl/store-attandance-log";
 
-        //        // Split the string using tab and space as delimiters
-        //        string[] parts = entry.Split(new[] { '\t', ' ' }, StringSplitOptions.RemoveEmptyEntries);
-        //        // Add the record to the list
-        //        punchRecords.Add(new PunchRecordModel
-        //        {
-        //            EmployeeId = parts[0],
-        //            Date = parts[1],
-        //            Time = parts[2].Substring(0, 5), // Extract hour and minute (HH:mm)
-        //            Status = parts[3]
-        //        });
-        //    }
-        //    // Step 2: Transform into AttendanceLogModel
-        //    List<AttendanceLogModel> attendanceLogs = new List<AttendanceLogModel>();
+            var punchRecord = new PunchRecordRequestModel();
+            punchRecord.attandanceLogs = attendanceRecords;
+            try
+            {
+                var serializePunchedData = JsonConvert.SerializeObject(punchRecord);
+                
+                HttpContent content = new StringContent(serializePunchedData, Encoding.UTF8, "application/json");
 
-        //    var groupedRecords = punchRecords
-        //        .GroupBy(r => new { r.EmployeeId, r.Date }) // Group by EmployeeId and Date
-        //        .ToList();
+                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                // Send POST request
+                var response = await client.PostAsync(url, content);
+                response.EnsureSuccessStatusCode();
+                // Read the response
+                var responseString = await response.Content.ReadAsStringAsync();
 
-        //    foreach (var group in groupedRecords)
-        //    {
-        //        // Get all IN and OUT records for the current group
-        //        var inRecords = group.Where(r => r.Status == "in").OrderBy(r => r.Time).ToList();
-        //        var outRecords = group.Where(r => r.Status == "out").OrderBy(r => r.Time).ToList();
-
-        //        // Pair IN and OUT records
-        //        int count = Math.Max(inRecords.Count, outRecords.Count);
-
-        //        for (int i = 0; i < count; i++)
-        //        {
-        //            attendanceLogs.Add(new AttendanceLogModel
-        //            {
-        //                EmployeeId = group.Key.EmployeeId,
-        //                Date = group.Key.Date,
-        //                InTime = i < inRecords.Count ? inRecords[i].Time : null,
-        //                OutTime = i < outRecords.Count ? outRecords[i].Time : null
-        //            });
-        //        }
-        //    }
-        //    var dd = attendanceLogs;
-        //    return punchRecords;
-
-        //}
+            }
+            catch (Exception e)
+            {
+                throw;
+            }
+        }
     }
+
 }
 

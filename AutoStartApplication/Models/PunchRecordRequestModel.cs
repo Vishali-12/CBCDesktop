@@ -8,9 +8,11 @@ namespace AutoStartApplication.Models
 {
     public class PunchRecordRequestModel
     {
-        public string EmployeeId { get; set; }
-        public string Date { get; set; }
-        public string InTime { get; set; }
-        public string OutTime { get; set; }
+        public PunchRecordRequestModel()
+        {
+            List<AttendanceRecordModel> attandanceLogs = new List<AttendanceRecordModel>();
+        }
+        public List<AttendanceRecordModel> attandanceLogs { get; set; }
     }
+    
 }
