@@ -2,8 +2,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Security.Policy;
+using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using Newtonsoft.Json;
 
 namespace AutoStartApplication.APIs
 {
@@ -78,7 +83,7 @@ namespace AutoStartApplication.APIs
             return data;
         }
 
-        public async Task <List<string>> ExtractData(string xmlResponse)
+        public async Task<List<string>> ExtractData(string xmlResponse)
         {
 
             // Load the XML string
@@ -99,21 +104,21 @@ namespace AutoStartApplication.APIs
                 // Trim and clean up extra spaces, then add the line to the list
                 punchListData.Add(line.Trim());
             }
-            
-            var punchRecordList = GetPunchRecords(punchListData).OrderBy(r=>r.EmployeeId);
+
+            var punchRecordList = GetPunchRecords(punchListData).OrderBy(r => r.EmployeeId);
             return punchListData;
-          
+
         }
 
-        public  List<PunchRecordModel> GetPunchRecords(List<string> data)
+        public List<PunchRecordModel> GetPunchRecords(List<string> data)
         {
             List<PunchRecordModel> punchRecords = new List<PunchRecordModel>();
 
             foreach (var entry in data)
             {
-
                 // Split the string using tab and space as delimiters
                 string[] parts = entry.Split(new[] { '\t', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
                 // Add the record to the list
                 punchRecords.Add(new PunchRecordModel
                 {
@@ -123,10 +128,90 @@ namespace AutoStartApplication.APIs
                     Status = parts[3]
                 });
             }
+            // Step 2: Transform into AttendanceLogModel
+            List<AttendanceRecordModel> attendanceLogs = new List<AttendanceRecordModel>();
+
+            var groupedRecords = punchRecords
+                .GroupBy(r => new { r.EmployeeId, r.Date }) // Group by EmployeeId and Date
+                .ToList();
+
+            foreach (var group in groupedRecords)
+            {
+                // Get all IN and OUT records for the current group
+                var inRecords = group.Where(r => r.Status == "in").OrderBy(r => r.Time).ToList();
+                var outRecords = group.Where(r => r.Status == "out").OrderBy(r => r.Time).ToList();
+
+                int inIndex = 0, outIndex = 0;
+
+                while (inIndex < inRecords.Count || outIndex < outRecords.Count)
+                {
+                    string inTime = null;
+                    string outTime = null;
+
+                    // Check if an "Out" record exists without a preceding "In" record
+                    if (outIndex < outRecords.Count && (inIndex >= inRecords.Count || string.Compare(outRecords[outIndex].Time, inRecords[inIndex].Time) < 0))
+                    {
+                        outTime = outRecords[outIndex].Time;
+                        outIndex++;
+                    }
+                    else if (inIndex < inRecords.Count)
+                    {
+                        inTime = inRecords[inIndex].Time;
+                        if (outIndex < outRecords.Count)
+                        {
+                            outTime = outRecords[outIndex].Time;
+                            outIndex++;
+                        }
+                        inIndex++;
+                    }
+
+                    // Add the paired or unpaired record
+                    attendanceLogs.Add(new AttendanceRecordModel
+                    {
+                        EmployeeId = group.Key.EmployeeId,
+                        Date = group.Key.Date ?? "1900-01-01",
+                        InTime = inTime ?? "00:00",
+                        OutTime = outTime ?? "00:00",
+                    });
+                }
+            }
+            //  Post Feched data
+             SendFormDataAsync(attendanceLogs);
 
             return punchRecords;
         }
 
-}
+      
+
+        public async Task SendFormDataAsync(List<AttendanceRecordModel> attendanceRecords)
+        {
+            var client = new HttpClient();
+
+            // Set the API endpoint
+            var url = "https://crm.creativebuffer.com/api/essl/store-attandance-log";
+
+            var punchRecord = new PunchRecordRequestModel();
+            punchRecord.attandanceLogs = attendanceRecords;
+            try
+            {
+                var serializePunchedData = JsonConvert.SerializeObject(punchRecord);
+                
+                HttpContent content = new StringContent(serializePunchedData, Encoding.UTF8, "application/json");
+
+                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                // Send POST request
+                var response = await client.PostAsync(url, content);
+                response.EnsureSuccessStatusCode();
+                // Read the response
+                var responseString = await response.Content.ReadAsStringAsync();
+
+            }
+            catch (Exception e)
+            {
+                throw;
+            }
+        }
+    }
+
 }
 
