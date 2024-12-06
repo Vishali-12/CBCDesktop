@@ -62,6 +62,8 @@
     <Compile Include="HistoryForm.Designer.cs">
       <DependentUpon>HistoryForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="Models\HistoryResponseModel.cs" />
+    <Compile Include="Models\Histoy.cs" />
     <Compile Include="Models\AttendanceRecordModel.cs" />
     <Compile Include="Models\PunchRecordModel.cs" />
     <Compile Include="Models\PunchRecordRequestModel.cs" />

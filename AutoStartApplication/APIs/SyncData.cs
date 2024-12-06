@@ -1,4 +1,5 @@
 ﻿using AutoStartApplication.Models;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,6 +15,11 @@ namespace AutoStartApplication.APIs
 {
     public class SyncData
     {
+        public HttpClient _httpClient;
+        public SyncData() {
+            _httpClient = new HttpClient { BaseAddress = new Uri("https://crm.creativebuffer.com/api/essl/") };
+        }
+        #region Get Data From Soap Api
         public async Task<string> GetData(string fromDateTime, string toDateTime)
         {
 
@@ -37,7 +43,7 @@ namespace AutoStartApplication.APIs
             try
             {
                 string response = await CallSoapApiAsync(url, soapBody);
-                var date = ExtractData(response);
+                var date = ExtractDataFromExcel(response);
 
                 return response;
                 //MessageBox.Show($"Response:\n{response}", "API Response", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -83,7 +89,7 @@ namespace AutoStartApplication.APIs
             return data;
         }
 
-        public async Task<List<string>> ExtractData(string xmlResponse)
+        public async Task<List<string>> ExtractDataFromExcel(string xmlResponse)
         {
 
             // Load the XML string
@@ -180,13 +186,37 @@ namespace AutoStartApplication.APIs
 
             return punchRecords;
         }
+        #endregion
 
-      
+        public async Task<List<Histoy>> GetAttendanceLogHistory()
+        {
+            List<Histoy> historyList = null;
+            try
+            {
+                var httpResponse = (_httpClient.GetAsync("attandance-log-status")).Result;
+
+                if (httpResponse.IsSuccessStatusCode)
+                {
+                    var httpContent = await httpResponse.Content.ReadAsStringAsync();
 
         public async Task SendFormDataAsync(List<AttendanceRecordModel> attendanceRecords)
         {
             var client = new HttpClient();
 
+                        if (apiRespnse.status == (int)HttpStatusCode.OK)
+                        {
+                            historyList = apiRespnse.data;
+                            //MessageBox.Show(apiRespnse.status.ToString());
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return historyList= null;
+            }
+            return  historyList; 
+        }
             // Set the API endpoint
             var url = "https://crm.creativebuffer.com/api/essl/store-attandance-log";
 

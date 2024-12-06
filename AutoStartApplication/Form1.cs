@@ -3,6 +3,7 @@ using AutoStartApplication.APIs;
 using Microsoft.Win32;
 using System;
 using System.Drawing;
+using System.Net.NetworkInformation;
 using System.Windows.Forms;
 
 namespace AutoStartApplication
@@ -38,10 +39,7 @@ namespace AutoStartApplication
             notifyIcon.BalloonTipText = "This application is running in the system tray.";
             notifyIcon.ShowBalloonTip(3000);
         }
-        private void Button_Click(object sender, EventArgs e)
-        {
-            MessageBox.Show("Hello, world!", "Message");
-        }
+
         private void ExitMenuItem_Click(object sender, EventArgs e)
         {
             // Exit the application
@@ -52,13 +50,18 @@ namespace AutoStartApplication
         private void Form1_Load(object sender, EventArgs e)
         {
             AddToStartup();
-            SyncData syncData= new SyncData();
-            DateTime yesterdayDate = DateTime.Today.AddDays(-1);
-            string fromDateTime = yesterdayDate.ToString("yyyy-MM-dd HH:mm");
-            string toDateTime = DateTime.Now.ToString("yyyy-MM-dd");
-            var data = syncData.GetData(fromDateTime, toDateTime);
-            //var response = syncData.ExtractData(data);
-            //MessageBox.Show("Application has started!");
+            if (IsConnectedToInternet())
+            {
+                SyncData syncData = new SyncData();
+                DateTime yesterdayDate = DateTime.Today.AddDays(-1);
+                string fromDateTime = yesterdayDate.ToString("yyyy-MM-dd");
+                string toDateTime = DateTime.Now.ToString("yyyy-MM-dd");
+                var data = syncData.GetData(fromDateTime, toDateTime);
+            }
+            else
+            {
+                MessageBox.Show("Please Check Your Internet connetion");
+            }
         }
 
         private void AddToStartup()
@@ -66,13 +69,12 @@ namespace AutoStartApplication
             try
             {
                 string appName = "AutoStartApp";
-                string exePath = Application.ExecutablePath; 
+                string exePath = Application.ExecutablePath;
 
                 RegistryKey registryKey = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
 
                 registryKey.SetValue(appName, exePath);
 
-                //MessageBox.Show("Application is set to run at startup.");
             }
             catch (Exception ex)
             {
@@ -82,9 +84,15 @@ namespace AutoStartApplication
 
         private void btnSync_Click(object sender, EventArgs e)
         {
+
             MessageBox.Show("Home page opened");
         }
 
+        /// <summary>
+        /// History Button Click :- Open new screen and display the sync data history, including the date and status.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void btnHistory_Click(object sender, EventArgs e)
         {
             this.Hide();
@@ -93,9 +101,54 @@ namespace AutoStartApplication
 
         }
 
+        /// <summary>
+        /// Sync Button Click :- Manually sync data by fetching it from one API and posting it to another API.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void syncbtn_Click(object sender, EventArgs e)
         {
-            MessageBox.Show("sync functionality");
+            if (IsConnectedToInternet())
+            {
+                SyncData syncData = new SyncData();
+                string fromDateTime = dateTimePicker1.Value.ToString("yyyy-MM-dd");
+                string toDateTime = dateTimePicker1.Value.AddDays(1).ToString("yyyy-MM-dd");
+                var data = syncData.GetData(fromDateTime, toDateTime);
+                if (data != null)
+                {
+                    MessageBox.Show("Data Synced Successfully.");
+                }
+            }
+            else
+            {
+                MessageBox.Show("Please Check Your Internet Connetion and try again.");
+            }
+
         }
+
+        /// <summary>
+        /// Check Internet Connection
+        /// </summary>
+        /// <returns></returns>
+        public bool IsConnectedToInternet()
+        {
+            string host = "www.google.com"; // Use a valid hostname
+            int timeout = 3000; // Timeout in milliseconds
+            Ping p = new Ping();
+            try
+            {
+                PingReply reply = p.Send(host, timeout);
+                if (reply.Status == IPStatus.Success)
+                {
+                    return true;
+                }
+            }
+            catch
+            {
+                // Log exception if needed
+            }
+            return false;
+        }
+
     }
 }
