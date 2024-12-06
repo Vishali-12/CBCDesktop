@@ -3,23 +3,22 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Security.Policy;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
-using Newtonsoft.Json;
 
 namespace AutoStartApplication.APIs
 {
     public class SyncData
     {
         public HttpClient _httpClient;
-        public SyncData() {
+        public SyncData()
+        {
             _httpClient = new HttpClient { BaseAddress = new Uri("https://crm.creativebuffer.com/api/essl/") };
         }
-        #region Get Data From Soap Api
         public async Task<string> GetData(string fromDateTime, string toDateTime)
         {
 
@@ -43,7 +42,7 @@ namespace AutoStartApplication.APIs
             try
             {
                 string response = await CallSoapApiAsync(url, soapBody);
-                var date = ExtractDataFromExcel(response);
+                var date = ExtractData(response);
 
                 return response;
                 //MessageBox.Show($"Response:\n{response}", "API Response", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -89,7 +88,12 @@ namespace AutoStartApplication.APIs
             return data;
         }
 
-        public async Task<List<string>> ExtractDataFromExcel(string xmlResponse)
+        /// <summary>
+        /// Extract data from xml response. 
+        /// </summary>
+        /// <param name="xmlResponse"></param>
+        /// <returns></returns>
+        public async Task<List<string>> ExtractData(string xmlResponse)
         {
 
             // Load the XML string
@@ -182,12 +186,49 @@ namespace AutoStartApplication.APIs
                 }
             }
             //  Post Feched data
-             SendFormDataAsync(attendanceLogs);
+            SendFormDataAsync(attendanceLogs);
 
             return punchRecords;
         }
-        #endregion
 
+        /// <summary>
+        /// Post Fetched Data 
+        /// </summary>
+        /// <param name="attendanceRecords"></param>
+        /// <returns></returns>
+        public async Task SendFormDataAsync(List<AttendanceRecordModel> attendanceRecords)
+        {
+
+            //// Set the API endpoint
+            //var url = "https://crm.creativebuffer.com/api/essl/store-attandance-log";
+
+            var punchRecord = new PunchRecordRequestModel();
+            punchRecord.attandanceLogs = attendanceRecords;
+            try
+            {
+                var serializePunchedData = JsonConvert.SerializeObject(punchRecord);
+
+                HttpContent content = new StringContent(serializePunchedData, Encoding.UTF8, "application/json");
+
+                _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                // Send POST request
+                var response = await _httpClient.PostAsync("store-attandance-log", content);
+                response.EnsureSuccessStatusCode();
+                // Read the response
+                var responseString = await response.Content.ReadAsStringAsync();
+
+            }
+            catch (Exception e)
+            {
+                throw;
+            }
+        }
+
+
+        /// <summary>
+        /// Get History Of Synced Record
+        /// </summary>
+        /// <returns></returns>
         public async Task<List<Histoy>> GetAttendanceLogHistory()
         {
             List<Histoy> historyList = null;
@@ -199,9 +240,9 @@ namespace AutoStartApplication.APIs
                 {
                     var httpContent = await httpResponse.Content.ReadAsStringAsync();
 
-        public async Task SendFormDataAsync(List<AttendanceRecordModel> attendanceRecords)
-        {
-            var client = new HttpClient();
+                    if (!string.IsNullOrEmpty(httpContent))
+                    {
+                        var apiRespnse = JsonConvert.DeserializeObject<HistoryResponseModel>(httpContent);
 
                         if (apiRespnse.status == (int)HttpStatusCode.OK)
                         {
@@ -213,33 +254,9 @@ namespace AutoStartApplication.APIs
             }
             catch (Exception ex)
             {
-                return historyList= null;
+                return historyList = null;
             }
-            return  historyList; 
-        }
-            // Set the API endpoint
-            var url = "https://crm.creativebuffer.com/api/essl/store-attandance-log";
-
-            var punchRecord = new PunchRecordRequestModel();
-            punchRecord.attandanceLogs = attendanceRecords;
-            try
-            {
-                var serializePunchedData = JsonConvert.SerializeObject(punchRecord);
-                
-                HttpContent content = new StringContent(serializePunchedData, Encoding.UTF8, "application/json");
-
-                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                // Send POST request
-                var response = await client.PostAsync(url, content);
-                response.EnsureSuccessStatusCode();
-                // Read the response
-                var responseString = await response.Content.ReadAsStringAsync();
-
-            }
-            catch (Exception e)
-            {
-                throw;
-            }
+            return historyList;
         }
     }
 
