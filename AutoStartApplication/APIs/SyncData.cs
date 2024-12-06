@@ -1,7 +1,11 @@
 ﻿using AutoStartApplication.Models;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
@@ -9,6 +13,11 @@ namespace AutoStartApplication.APIs
 {
     public class SyncData
     {
+        public HttpClient _httpClient;
+        public SyncData() {
+            _httpClient = new HttpClient { BaseAddress = new Uri("https://crm.creativebuffer.com/api/essl/") };
+        }
+        #region Get Data From Soap Api
         public async Task<string> GetData(string fromDateTime, string toDateTime)
         {
 
@@ -32,7 +41,7 @@ namespace AutoStartApplication.APIs
             try
             {
                 string response = await CallSoapApiAsync(url, soapBody);
-                var date = ExtractData(response);
+                var date = ExtractDataFromExcel(response);
 
                 return response;
                 //MessageBox.Show($"Response:\n{response}", "API Response", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -78,7 +87,7 @@ namespace AutoStartApplication.APIs
             return data;
         }
 
-        public async Task<List<string>> ExtractData(string xmlResponse)
+        public async Task<List<string>> ExtractDataFromExcel(string xmlResponse)
         {
 
             // Load the XML string
@@ -174,57 +183,38 @@ namespace AutoStartApplication.APIs
             var gg = attendanceLogs;
             return punchRecords;
         }
+        #endregion
 
+        public async Task<List<Histoy>> GetAttendanceLogHistory()
+        {
+            List<Histoy> historyList = null;
+            try
+            {
+                var httpResponse = (_httpClient.GetAsync("attandance-log-status")).Result;
 
-        //public List<PunchRecordModel> GetPunchRecords(List<string> data)
-        //{
-        //    List<PunchRecordModel> punchRecords = new List<PunchRecordModel>();
+                if (httpResponse.IsSuccessStatusCode)
+                {
+                    var httpContent = await httpResponse.Content.ReadAsStringAsync();
 
-        //    foreach (var entry in data)
-        //    {
+                    if (!string.IsNullOrEmpty(httpContent))
+                    {
+                        var apiRespnse = JsonConvert.DeserializeObject<HistoryResponseModel>(httpContent);
 
-        //        // Split the string using tab and space as delimiters
-        //        string[] parts = entry.Split(new[] { '\t', ' ' }, StringSplitOptions.RemoveEmptyEntries);
-        //        // Add the record to the list
-        //        punchRecords.Add(new PunchRecordModel
-        //        {
-        //            EmployeeId = parts[0],
-        //            Date = parts[1],
-        //            Time = parts[2].Substring(0, 5), // Extract hour and minute (HH:mm)
-        //            Status = parts[3]
-        //        });
-        //    }
-        //    // Step 2: Transform into AttendanceLogModel
-        //    List<AttendanceLogModel> attendanceLogs = new List<AttendanceLogModel>();
+                        if (apiRespnse.status == (int)HttpStatusCode.OK)
+                        {
+                            historyList = apiRespnse.data;
+                            //MessageBox.Show(apiRespnse.status.ToString());
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return historyList= null;
+            }
+            return  historyList; 
+        }
 
-        //    var groupedRecords = punchRecords
-        //        .GroupBy(r => new { r.EmployeeId, r.Date }) // Group by EmployeeId and Date
-        //        .ToList();
-
-        //    foreach (var group in groupedRecords)
-        //    {
-        //        // Get all IN and OUT records for the current group
-        //        var inRecords = group.Where(r => r.Status == "in").OrderBy(r => r.Time).ToList();
-        //        var outRecords = group.Where(r => r.Status == "out").OrderBy(r => r.Time).ToList();
-
-        //        // Pair IN and OUT records
-        //        int count = Math.Max(inRecords.Count, outRecords.Count);
-
-        //        for (int i = 0; i < count; i++)
-        //        {
-        //            attendanceLogs.Add(new AttendanceLogModel
-        //            {
-        //                EmployeeId = group.Key.EmployeeId,
-        //                Date = group.Key.Date,
-        //                InTime = i < inRecords.Count ? inRecords[i].Time : null,
-        //                OutTime = i < outRecords.Count ? outRecords[i].Time : null
-        //            });
-        //        }
-        //    }
-        //    var dd = attendanceLogs;
-        //    return punchRecords;
-
-        //}
     }
 }
 
