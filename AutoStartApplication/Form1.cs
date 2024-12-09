@@ -1,5 +1,4 @@
-﻿
-using AutoStartApplication.APIs;
+﻿using AutoStartApplication.APIs;
 using Microsoft.Win32;
 using System;
 using System.Drawing;
@@ -84,7 +83,6 @@ namespace AutoStartApplication
 
         private void btnSync_Click(object sender, EventArgs e)
         {
-
             MessageBox.Show("Home page opened");
         }
 
@@ -95,10 +93,9 @@ namespace AutoStartApplication
         /// <param name="e"></param>
         private void btnHistory_Click(object sender, EventArgs e)
         {
-            this.Hide();
             HistoryForm historyForm = new HistoryForm();
             historyForm.Show();
-
+            this.Hide();
         }
 
         /// <summary>
@@ -106,17 +103,17 @@ namespace AutoStartApplication
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void syncbtn_Click(object sender, EventArgs e)
+        private async void syncbtn_Click(object sender, EventArgs e)
         {
             if (IsConnectedToInternet())
             {
                 SyncData syncData = new SyncData();
                 string fromDateTime = dateTimePicker1.Value.ToString("yyyy-MM-dd");
                 string toDateTime = dateTimePicker1.Value.AddDays(1).ToString("yyyy-MM-dd");
-                var data = syncData.GetData(fromDateTime, toDateTime);
-                if (data != null)
+                var data = await syncData.GetData(fromDateTime, toDateTime);
+                if (data !="")
                 {
-                    MessageBox.Show("Data Synced Successfully.");
+                    MessageBox.Show(data);
                 }
             }
             else
