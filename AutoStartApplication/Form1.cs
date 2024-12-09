@@ -46,7 +46,7 @@ namespace AutoStartApplication
             Application.Exit();
         }
 
-        private void Form1_Load(object sender, EventArgs e)
+        private async void Form1_Load(object sender, EventArgs e)
         {
             AddToStartup();
             if (IsConnectedToInternet())
@@ -55,7 +55,11 @@ namespace AutoStartApplication
                 DateTime yesterdayDate = DateTime.Today.AddDays(-1);
                 string fromDateTime = yesterdayDate.ToString("yyyy-MM-dd");
                 string toDateTime = DateTime.Now.ToString("yyyy-MM-dd");
-                var data = syncData.GetData(fromDateTime, toDateTime);
+                var data = await syncData.GetData(fromDateTime, toDateTime);
+                if (data != "")
+                {
+                    MessageBox.Show(data);
+                }
             }
             else
             {
