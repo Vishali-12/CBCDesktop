@@ -66,6 +66,7 @@
     <Compile Include="Models\HistoryResponseModel.cs" />
     <Compile Include="Models\Histoy.cs" />
     <Compile Include="Models\AttendanceRecordModel.cs" />
+    <Compile Include="Models\PostAttendanceRecordResponseModel.cs" />
     <Compile Include="Models\PunchRecordModel.cs" />
     <Compile Include="Models\PunchRecordRequestModel.cs" />
     <Compile Include="Program.cs" />
