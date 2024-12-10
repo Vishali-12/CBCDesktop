@@ -63,9 +63,9 @@
     <Compile Include="HistoryForm.Designer.cs">
       <DependentUpon>HistoryForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="Models\AttendanceRecordModel.cs" />
     <Compile Include="Models\HistoryResponseModel.cs" />
     <Compile Include="Models\Histoy.cs" />
-    <Compile Include="Models\AttendanceRecordModel.cs" />
     <Compile Include="Models\PunchRecordModel.cs" />
     <Compile Include="Models\PunchRecordRequestModel.cs" />
     <Compile Include="Program.cs" />
@@ -100,8 +100,4 @@
     <None Include="App.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <PropertyGroup>
-    <PreBuildEvent>if exist "$(TargetPath).locked" del "$(TargetPath).locked"
-if exist "$(TargetPath)" if not exist "$(TargetPath).locked" move "$(TargetPath)" "$(TargetPath).locked"</PreBuildEvent>
-  </PropertyGroup>
 </Project>
