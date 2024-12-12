@@ -1,8 +1,7 @@
 ﻿using AutoStartApplication.APIs;
-using Microsoft.Win32;
+using AutoStartApplication.Common;
 using System;
 using System.Drawing;
-using System.Net.NetworkInformation;
 using System.Windows.Forms;
 
 namespace AutoStartApplication
@@ -10,12 +9,13 @@ namespace AutoStartApplication
     public partial class Form1 : Form
     {
         private NotifyIcon notifyIcon;
+        private readonly CheckInternetConnection checkInternetConnection;
 
         public Form1()
         {
             InitializeComponent();
+            checkInternetConnection = new CheckInternetConnection();    
             this.Load += new System.EventHandler(this.Form1_Load);
-            this.Text = "Sample Windows Form";
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
             ConfigureNotifyIcon();
@@ -48,46 +48,51 @@ namespace AutoStartApplication
 
         private async void Form1_Load(object sender, EventArgs e)
         {
-            AddToStartup();
-            if (IsConnectedToInternet())
-            {
-                SyncData syncData = new SyncData();
-                DateTime yesterdayDate = DateTime.Today.AddDays(-1);
-                string fromDateTime = yesterdayDate.ToString("yyyy-MM-dd");
-                string toDateTime = DateTime.Now.ToString("yyyy-MM-dd");
-                var data = await syncData.GetData(fromDateTime, toDateTime);
-                if (data != "")
-                {
-                    MessageBox.Show(data);
-                }
-            }
-            else
-            {
-                MessageBox.Show("Please Check Your Internet connetion");
-            }
+            //this.UseWaitCursor = true;
+            ////AddToStartup();
+            //if (checkInternetConnection.IsConnectedToInternet())
+            //{
+            //    SyncData syncData = new SyncData();
+            //    DateTime yesterdayDate = DateTime.Today.AddDays(-1);
+            //    string fromDateTime = yesterdayDate.ToString("yyyy-MM-dd");
+            //    string toDateTime = DateTime.Now.ToString("yyyy-MM-dd");
+            //    var data = await syncData.GetData(fromDateTime, toDateTime);
+            //    if (data != "")
+            //    {
+            //        this.UseWaitCursor = false;
+            //        MessageBox.Show(data);
+            //    }
+            //}
+            //else
+            //{
+            //    this.UseWaitCursor = false;
+            //    MessageBox.Show("Please Check Your Internet connetion");
+            //}
         }
 
-        private void AddToStartup()
-        {
-            try
-            {
-                string appName = "AutoStartApp";
-                string exePath = Application.ExecutablePath;
+        #region AddToStartup code which is not in Use.
+        //private void AddToStartup()
+        //{
+        //    try
+        //    {
+        //        string appName = "AutoStartApp";
+        //        string exePath = Application.ExecutablePath;
 
-                RegistryKey registryKey = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
+        //        RegistryKey registryKey = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
 
-                registryKey.SetValue(appName, exePath);
+        //        registryKey.SetValue(appName, exePath);
 
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Failed to set startup: " + ex.Message);
-            }
-        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        MessageBox.Show("Failed to set startup: " + ex.Message);
+        //    }
+        //} 
+        #endregion
 
         private void btnSync_Click(object sender, EventArgs e)
         {
-            MessageBox.Show("Home page opened");
+           
         }
 
         /// <summary>
@@ -97,8 +102,10 @@ namespace AutoStartApplication
         /// <param name="e"></param>
         private void btnHistory_Click(object sender, EventArgs e)
         {
+            this.UseWaitCursor = true;
             HistoryForm historyForm = new HistoryForm();
             historyForm.Show();
+            this.UseWaitCursor = false;
             this.Hide();
         }
 
@@ -109,7 +116,8 @@ namespace AutoStartApplication
         /// <param name="e"></param>
         private async void syncbtn_Click(object sender, EventArgs e)
         {
-            if (IsConnectedToInternet())
+            this.UseWaitCursor = true;
+            if (checkInternetConnection.IsConnectedToInternet())
             {
                 SyncData syncData = new SyncData();
                 string fromDateTime = dateTimePicker1.Value.ToString("yyyy-MM-dd");
@@ -117,38 +125,16 @@ namespace AutoStartApplication
                 var data = await syncData.GetData(fromDateTime, toDateTime);
                 if (data !="")
                 {
+                    this.UseWaitCursor = false;
                     MessageBox.Show(data);
                 }
             }
             else
             {
+                this.UseWaitCursor = false;
                 MessageBox.Show("Please Check Your Internet Connetion and try again.");
             }
 
-        }
-
-        /// <summary>
-        /// Check Internet Connection
-        /// </summary>
-        /// <returns></returns>
-        public bool IsConnectedToInternet()
-        {
-            string host = "www.google.com"; // Use a valid hostname
-            int timeout = 3000; // Timeout in milliseconds
-            Ping p = new Ping();
-            try
-            {
-                PingReply reply = p.Send(host, timeout);
-                if (reply.Status == IPStatus.Success)
-                {
-                    return true;
-                }
-            }
-            catch
-            {
-                // Log exception if needed
-            }
-            return false;
         }
 
     }
