@@ -56,6 +56,7 @@
             // 
             // btnSync
             // 
+            this.btnSync.Enabled = false;
             this.btnSync.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnSync.Location = new System.Drawing.Point(91, 52);
             this.btnSync.Name = "btnSync";
@@ -87,7 +88,7 @@
             this.MaximizeBox = false;
             this.Name = "Form1";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "Form1";
+            this.Text = "Dashboard Screen";
             this.ResumeLayout(false);
 
         }
