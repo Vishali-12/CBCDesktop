@@ -33,8 +33,8 @@ namespace AutoStartApplication.APIs
                xmlns:soap=""http://schemas.xmlsoap.org/soap/envelope/"">
             <soap:Body>
             <GetTransactionsLog xmlns=""http://tempuri.org/"">
-             <FromDateTime>2024-12-11</FromDateTime>
-            <ToDateTime>2024-12-12</ToDateTime>
+             <FromDateTime>{fromDateTime}</FromDateTime>
+            <ToDateTime>{toDateTime}</ToDateTime>
             <SerialNumber>{serialNumber}</SerialNumber>
             <UserName>{userName}</UserName>
             <UserPassword>{userPassword}</UserPassword>
