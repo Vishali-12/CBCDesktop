@@ -1,8 +1,13 @@
 ﻿using AutoStartApplication.APIs;
 using AutoStartApplication.Common;
+using AutoStartApplication.Models;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http.Headers;
+using System.Net.Http;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -34,6 +39,12 @@ namespace AutoStartApplication
 
             try
             {
+                // Set up global exception handlers
+                Application.ThreadException += Application_ThreadException;
+                AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+
+                Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
+
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
 
@@ -86,6 +97,68 @@ namespace AutoStartApplication
             {
                 MessageBox.Show("Please Check Your Internet Connection", "No Internet", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
+        }
+
+        private async static void Application_ThreadException(object sender, System.Threading.ThreadExceptionEventArgs e)
+        {
+            // Handle UI thread exceptions
+            var exception = e.Exception;
+
+            await LogExceptionToAirtable(new ExcetionViewModel
+            {
+                Message = string.IsNullOrEmpty(exception.Message) ? exception.InnerException?.Message : exception.Message,
+                OccuredOn = DateTime.Now,
+                InnerException = exception?.InnerException?.Message,
+                StackTrace = exception?.StackTrace
+            });
+        }
+
+        private async static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+
+            // Handle non-UI thread exceptions
+            Exception exception = e.ExceptionObject as Exception;
+            //var _exceptionMiddleware = new ExceptionMiddleware();
+
+            await LogExceptionToAirtable(new ExcetionViewModel
+            {
+                Message = string.IsNullOrEmpty(exception.Message) ? exception.InnerException.Message : exception.Message,
+                InnerException = exception?.InnerException?.Message,
+                OccuredOn = DateTime.Now,
+                StackTrace = exception?.StackTrace
+            });
+
+
+        }
+
+
+        private static async Task LogExceptionToAirtable(ExcetionViewModel excetionViewModel)
+        {
+            try
+            {
+                using (var httpClient = new HttpClient())
+                {
+                    httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "patDCtokqJzRG1WGb.b4f7f8bb7e922e1a7138549c22470f6e90d0fc126aedae281e76f8731d22e063");
+
+                    var model = new
+                    {
+                        fields = excetionViewModel
+                    };
+
+                    var data = new StringContent(JsonConvert.SerializeObject(model), Encoding.UTF8, "application/json");
+
+                    var httpResponse = httpClient.PostAsync("https://api.airtable.com/v0/appg954VRZyhntmCb/tbl72RY4aWyt9KDvY", data).Result;
+
+                    var data1 = httpResponse.Content.ReadAsStringAsync();
+                    MessageBox.Show(excetionViewModel.Message);
+                }
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+
         }
     }
 }

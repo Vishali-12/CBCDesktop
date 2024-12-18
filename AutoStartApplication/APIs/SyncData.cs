@@ -15,18 +15,35 @@ namespace AutoStartApplication.APIs
 {
     public class SyncData
     {
-        public HttpClient _httpClient;
+        public HttpClient _httpClientCRM;
+        public HttpClient _httpClientEssl;
+        public readonly string _esslBaseUrl;
+        public readonly string _crmBaseUrl;
+        public readonly string _userName;
+        public readonly string _userPassword;
+        public readonly string _inSerialNumber;
+        public readonly string _outSerialNumber;
         public SyncData()
         {
-            _httpClient = new HttpClient { BaseAddress = new Uri("https://crm.creativebuffer.com/api/essl/") };
+            _esslBaseUrl = ConfigurationManager.AppSettings["EsslBaseUrl"];
+            _crmBaseUrl = ConfigurationManager.AppSettings["CRMBaseUrl"];
+            _userName = ConfigurationManager.AppSettings["UserName"];
+            _userPassword = ConfigurationManager.AppSettings["UserPassword"];
+            _httpClientCRM = new HttpClient { BaseAddress = new Uri(_crmBaseUrl) };
+            _httpClientEssl = new HttpClient { BaseAddress = new Uri(_esslBaseUrl) };
+            _inSerialNumber = ConfigurationManager.AppSettings["InSerialNumber"];
+            _outSerialNumber = ConfigurationManager.AppSettings["OutSerialNumber"];
+
         }
+
+
+        #region Get In and Out attendance records from Essl Api 
 
         private async Task<List<string>> GetDataFromInAndOutAPI(string fromDateTime, string toDateTime, string serialNumber)
         {
-            var extractedData= new List<string>();
-            string userName = ConfigurationManager.AppSettings["UserName"];
-            string userPassword = ConfigurationManager.AppSettings["UserPassword"];
-            string url = "http://172.16.16.10:82/iclock/webapiservice.asmx?op=GetTransactionsLog";
+            var extractedData = new List<string>();
+
+            //string url = _httpClientEssl+"?op=GetTransactionsLog";
             string soapBody = $@"<?xml version=""1.0"" encoding=""utf-8""?>
             <soap:Envelope xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" 
                xmlns:xsd=""http://www.w3.org/2001/XMLSchema"" 
@@ -36,48 +53,79 @@ namespace AutoStartApplication.APIs
              <FromDateTime>{fromDateTime}</FromDateTime>
             <ToDateTime>{toDateTime}</ToDateTime>
             <SerialNumber>{serialNumber}</SerialNumber>
-            <UserName>{userName}</UserName>
-            <UserPassword>{userPassword}</UserPassword>
+            <UserName>{_userName}</UserName>
+            <UserPassword>{_userPassword}</UserPassword>
              <strDataList></strDataList>
              </GetTransactionsLog>
             </soap:Body>
             </soap:Envelope>";
-            using (HttpClient client = new HttpClient())
+            //using (HttpClient client = new HttpClient())
+            //{
+            // Set the headers
+            _httpClientEssl.DefaultRequestHeaders.Add("op", "GetTransactionsLog");
+
+            // Create the request content
+            StringContent content = new StringContent(soapBody, Encoding.UTF8, "text/xml");
+
+            // Send the request
+            HttpResponseMessage response = await _httpClientEssl.PostAsync("?op=GetTransactionsLog", content);
+
+            // Ensure the response was successful
+            response.EnsureSuccessStatusCode();
+
+            // Read the response content
+            string responseBody = await response.Content.ReadAsStringAsync();
+            if (responseBody != null && responseBody != "")
             {
-                // Set the headers
-                client.DefaultRequestHeaders.Add("op", "GetTransactionsLog");
-
-                // Create the request content
-                StringContent content = new StringContent(soapBody, Encoding.UTF8, "text/xml");
-
-                // Send the request
-                HttpResponseMessage response = await client.PostAsync(url, content);
-
-                // Ensure the response was successful
-                response.EnsureSuccessStatusCode();
-
-                // Read the response content
-                string responseBody = await response.Content.ReadAsStringAsync();
-                if (responseBody != null && responseBody != "")
-                {
-                    extractedData = await ExtractData(responseBody);
-                    return extractedData;
-                }
+                extractedData = await ExtractData(responseBody);
                 return extractedData;
             }
-
+            return extractedData;
         }
-
 
         public async Task<string> GetData(string fromDateTime, string toDateTime)
         {
-            string inSerialNumber = ConfigurationManager.AppSettings["InSerialNumber"];
-            string outSerialNumber = ConfigurationManager.AppSettings["OutSerialNumber"];
             List<AttendanceRecordModel> attendanceLogs = new List<AttendanceRecordModel>();
-            try
-            {
-                var inAttandenceRecords = await GetDataFromInAndOutAPI(fromDateTime, toDateTime, inSerialNumber);
-                var outAttandenceRecords = await GetDataFromInAndOutAPI(fromDateTime, toDateTime, outSerialNumber);
+            //try
+            //{
+                var employees = await GetEmployees();
+
+                if (employees.data.Count > 0)
+                {
+                    foreach (var user in employees.data)
+                    {
+                        if (user.in_machine_status == 0)
+                        {
+                            // Call the API
+                            bool result = await AddEmployeeAsync(user.employee_no, user.name, _inSerialNumber);
+                            if (result)
+                            {
+                                user.in_machine_status = 1;
+                            }
+
+                        }
+                        if (user.out_machine_status == 0)
+                        {
+                            // Call the API
+                            bool result = await AddEmployeeAsync(user.employee_no, user.name, _outSerialNumber);
+                            if (result)
+                            {
+                                user.out_machine_status = 1;
+                            }
+                        }
+                        UpdateEmployeeStatusRequestModel model = new UpdateEmployeeStatusRequestModel
+                        {
+                            id = user.id,
+                            in_machine_status = user.in_machine_status,
+                            out_machine_status = user.out_machine_status
+                        };
+
+                        UpdateEmployeeStatus(model);
+                    }
+
+                }
+                var inAttandenceRecords = await GetDataFromInAndOutAPI(fromDateTime, toDateTime, _inSerialNumber);
+                var outAttandenceRecords = await GetDataFromInAndOutAPI(fromDateTime, toDateTime, _outSerialNumber);
                 inAttandenceRecords.AddRange(outAttandenceRecords);
                 if (inAttandenceRecords != null)
                 {
@@ -91,18 +139,13 @@ namespace AutoStartApplication.APIs
                         }
                     }
                 }
-                //var date = ExtractData(response);
-
                 return "Error in sync data";
-                //MessageBox.Show($"Response:\n{response}", "API Response", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
-            catch (Exception ex)
-            {
-                return "";
-                //MessageBox.Show($"Error: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            //}
+            //catch (Exception ex)
+            //{
+            //    return "";
+            //}
         }
-
 
 
         /// <summary>
@@ -230,8 +273,10 @@ namespace AutoStartApplication.APIs
         }
 
 
+        #endregion
 
 
+        #region Send In and Out attendance records
         /// <summary>
         /// Post Fetched Data 
         /// </summary>
@@ -240,20 +285,16 @@ namespace AutoStartApplication.APIs
         public async Task<string> SendFormDataAsync(List<AttendanceRecordModel> attendanceRecords)
         {
 
-            //// Set the API endpoint
-            //var url = "https://crm.creativebuffer.com/api/essl/store-attandance-log";
-
             var punchRecord = new PunchRecordRequestModel();
             punchRecord.attandanceLogs = attendanceRecords;
-            try
-            {
+           
                 var serializePunchedData = JsonConvert.SerializeObject(punchRecord);
 
                 HttpContent content = new StringContent(serializePunchedData, Encoding.UTF8, "application/json");
 
-                _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                _httpClientCRM.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                 // Send POST request
-                var response = await _httpClient.PostAsync("store-attandance-log", content);
+                var response = await _httpClientCRM.PostAsync("store-attandance-log", content);
                 response.EnsureSuccessStatusCode();
 
                 // Read the response
@@ -264,14 +305,15 @@ namespace AutoStartApplication.APIs
                     return apiRespnse.message;
                 }
                 return apiRespnse.message;
-            }
-            catch (Exception e)
-            {
-                throw;
-            }
+           
         }
+        #endregion
 
 
+
+
+
+        #region Get Sync Data History
         /// <summary>
         /// Get History Of Synced Record
         /// </summary>
@@ -279,32 +321,127 @@ namespace AutoStartApplication.APIs
         public async Task<List<Histoy>> GetAttendanceLogHistory()
         {
             List<Histoy> historyList = null;
-            try
+
+            var httpResponse = (_httpClientCRM.GetAsync("attandance-log-status")).Result;
+
+            if (httpResponse.IsSuccessStatusCode)
             {
-                var httpResponse = (_httpClient.GetAsync("attandance-log-status")).Result;
+                var httpContent = await httpResponse.Content.ReadAsStringAsync();
 
-                if (httpResponse.IsSuccessStatusCode)
+                if (!string.IsNullOrEmpty(httpContent))
                 {
-                    var httpContent = await httpResponse.Content.ReadAsStringAsync();
+                    var apiRespnse = JsonConvert.DeserializeObject<HistoryResponseModel>(httpContent);
 
-                    if (!string.IsNullOrEmpty(httpContent))
+                    if (apiRespnse.status == (int)HttpStatusCode.OK)
                     {
-                        var apiRespnse = JsonConvert.DeserializeObject<HistoryResponseModel>(httpContent);
-
-                        if (apiRespnse.status == (int)HttpStatusCode.OK)
-                        {
-                            historyList = apiRespnse.data;
-                            //MessageBox.Show(apiRespnse.status.ToString());
-                        }
+                        historyList = apiRespnse.data.OrderByDescending(r => r.date).ToList();
                     }
                 }
             }
-            catch (Exception ex)
-            {
-                return historyList = null;
-            }
+
             return historyList;
         }
+        #endregion
+
+        #region Add employees to both the In and Out biometric machines.
+        /// <summary>
+        /// Add employees to both the In and Out biometric machines.
+        /// </summary>
+        /// <param name="employeeCode"></param>
+        /// <param name="employeeName"></param>
+        /// <param name="serialNumber"></param>
+        /// <returns></returns>
+        private async Task<bool> AddEmployeeAsync(string employeeCode, string employeeName, string serialNumber)
+        {
+            string soapRequest = $@"<?xml version=""1.0"" encoding=""utf-8""?>
+            <soap:Envelope xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance""
+                   xmlns:xsd=""http://www.w3.org/2001/XMLSchema""
+                   xmlns:soap=""http://schemas.xmlsoap.org/soap/envelope/"">
+                <soap:Body>
+                    <AddEmployee xmlns=""http://tempuri.org/"">
+                    <APIKey></APIKey>
+                    <EmployeeCode>{employeeCode}</EmployeeCode>
+                    <EmployeeName>{employeeName}</EmployeeName>
+                    <CardNumber></CardNumber>
+                    <SerialNumber>{serialNumber}</SerialNumber>
+                    <UserName>{_userName}</UserName>
+                    <UserPassword>{_userPassword}</UserPassword>
+                    <CommandId>1</CommandId>
+                    </AddEmployee>
+                </soap:Body>
+            </soap:Envelope>";
+
+            var content = new StringContent(soapRequest, System.Text.Encoding.UTF8, "text/xml");
+            var response = await _httpClientEssl.PostAsync("?op=AddEmployee", content);
+            var result = response.IsSuccessStatusCode;
+            return result;
+
+
+        }
+
+        #endregion
+
+
+        #region Retrieve employee records for enrollment in the biometric machine..
+        /// <summary>
+        /// Retrieve employee records for enrollment in the biometric machine.
+        /// </summary>
+        /// <returns></returns>
+
+        public async Task<GetEmployeesResponseModel> GetEmployees()
+        {
+            GetEmployeesResponseModel employees = null;
+            var httpResponse = (_httpClientCRM.GetAsync("get-employee")).Result;
+
+            if (httpResponse.IsSuccessStatusCode)
+            {
+                var httpContent = await httpResponse.Content.ReadAsStringAsync();
+
+                if (!string.IsNullOrEmpty(httpContent))
+                {
+                    var apiRespnse = JsonConvert.DeserializeObject<GetEmployeesResponseModel>(httpContent);
+
+                    if (apiRespnse.status == (int)HttpStatusCode.OK)
+                    {
+                        employees = apiRespnse;
+                    }
+                }
+            }
+
+            return employees;
+        }
+        #endregion
+
+
+
+        #region Send employee status
+
+        /// <summary>
+        ///   Send the status of the employee being added to both the In and Out machines.
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        public async Task<bool> UpdateEmployeeStatus(UpdateEmployeeStatusRequestModel model)
+        {
+
+            var serializePunchedData = JsonConvert.SerializeObject(model);
+
+            HttpContent content = new StringContent(serializePunchedData, Encoding.UTF8, "application/json");
+
+            var response = await _httpClientCRM.PostAsync("update-employee-status", content);
+            response.EnsureSuccessStatusCode();
+
+            var responseString = await response.Content.ReadAsStringAsync();
+            var apiRespnse = JsonConvert.DeserializeObject<PostAttendanceRecordResponseModel>(responseString);
+            if (apiRespnse != null && apiRespnse.success)
+            {
+                return apiRespnse.success;
+            }
+            return false;
+        }
+        #endregion
+
+
     }
 
 }

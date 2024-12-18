@@ -64,12 +64,16 @@
     <Compile Include="HistoryForm.Designer.cs">
       <DependentUpon>HistoryForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="Models\ExcetionViewModel.cs" />
+    <Compile Include="Models\GetEmployeesResponseModel.cs" />
     <Compile Include="Models\HistoryResponseModel.cs" />
     <Compile Include="Models\Histoy.cs" />
     <Compile Include="Models\AttendanceRecordModel.cs" />
     <Compile Include="Models\PostAttendanceRecordResponseModel.cs" />
     <Compile Include="Models\PunchRecordModel.cs" />
     <Compile Include="Models\PunchRecordRequestModel.cs" />
+    <Compile Include="Models\UpdateEmployeeStatusRequestModel.cs" />
+    <Compile Include="Models\User.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="Form1.resx">

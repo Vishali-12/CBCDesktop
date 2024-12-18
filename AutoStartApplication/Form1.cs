@@ -48,47 +48,9 @@ namespace AutoStartApplication
 
         private async void Form1_Load(object sender, EventArgs e)
         {
-            //this.UseWaitCursor = true;
-            ////AddToStartup();
-            //if (checkInternetConnection.IsConnectedToInternet())
-            //{
-            //    SyncData syncData = new SyncData();
-            //    DateTime yesterdayDate = DateTime.Today.AddDays(-1);
-            //    string fromDateTime = yesterdayDate.ToString("yyyy-MM-dd");
-            //    string toDateTime = DateTime.Now.ToString("yyyy-MM-dd");
-            //    var data = await syncData.GetData(fromDateTime, toDateTime);
-            //    if (data != "")
-            //    {
-            //        this.UseWaitCursor = false;
-            //        MessageBox.Show(data);
-            //    }
-            //}
-            //else
-            //{
-            //    this.UseWaitCursor = false;
-            //    MessageBox.Show("Please Check Your Internet connetion");
-            //}
+
         }
 
-        #region AddToStartup code which is not in Use.
-        //private void AddToStartup()
-        //{
-        //    try
-        //    {
-        //        string appName = "AutoStartApp";
-        //        string exePath = Application.ExecutablePath;
-
-        //        RegistryKey registryKey = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
-
-        //        registryKey.SetValue(appName, exePath);
-
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        MessageBox.Show("Failed to set startup: " + ex.Message);
-        //    }
-        //} 
-        #endregion
 
         private void btnSync_Click(object sender, EventArgs e)
         {
