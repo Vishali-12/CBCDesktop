@@ -78,9 +78,17 @@ namespace AutoStartApplication
         {
             if (checkInternetConnection.IsConnectedToInternet())
             {
+                DateTime yesterdayDate;
                 SyncData syncData = new SyncData();
-
-                DateTime yesterdayDate = DateTime.Today.AddDays(-1);
+                if (DateTime.Now.DayOfWeek == DayOfWeek.Monday)
+                {
+                    yesterdayDate = DateTime.Today.AddDays(-3);
+                }
+                else
+                {
+                    yesterdayDate = DateTime.Today.AddDays(-1);
+                }
+              
                 string fromDateTime = yesterdayDate.ToString("yyyy-MM-dd");
                 string toDateTime = DateTime.Now.ToString("yyyy-MM-dd");
 

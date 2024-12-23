@@ -83,8 +83,8 @@ namespace AutoStartApplication
                 SyncData syncData = new SyncData();
                 string fromDateTime = dateTimePicker1.Value.ToString("yyyy-MM-dd");
                 string toDateTime = dateTimePicker1.Value.AddDays(1).ToString("yyyy-MM-dd");
-                //if (dateTimePicker1.Value <= DateTime.Now)
-                //{
+                if (dateTimePicker1.Value <= DateTime.Now)
+                {
                     var data = await syncData.GetData(fromDateTime, toDateTime);
                     if (data != "")
                     {
@@ -97,7 +97,12 @@ namespace AutoStartApplication
                         }
 
                     }
-                //}
+                }
+                else
+                {
+                    this.UseWaitCursor = false;
+                    MessageBox.Show("No records found for the selected date.");
+                }
             }
             else
             {

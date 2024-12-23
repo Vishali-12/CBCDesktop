@@ -96,6 +96,7 @@ namespace AutoStartApplication.APIs
         /// <returns></returns>
         public async Task<string> GetData(string fromDateTime, string toDateTime)
         {
+            
             List<AttendanceRecordModel> attendanceLogs = new List<AttendanceRecordModel>();
 
             var blockedEmployeeList = await GetBlockdEmployees();
