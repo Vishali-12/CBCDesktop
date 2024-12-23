@@ -96,7 +96,7 @@ namespace AutoStartApplication.APIs
         /// <returns></returns>
         public async Task<string> GetData(string fromDateTime, string toDateTime)
         {
-            
+
             List<AttendanceRecordModel> attendanceLogs = new List<AttendanceRecordModel>();
 
             var blockedEmployeeList = await GetBlockdEmployees();
@@ -185,7 +185,7 @@ namespace AutoStartApplication.APIs
                 return "";
             }
 
-           
+
 
         }
 
@@ -529,14 +529,14 @@ namespace AutoStartApplication.APIs
                    xmlns:xsd=""http://www.w3.org/2001/XMLSchema""
                    xmlns:soap=""http://schemas.xmlsoap.org/soap/envelope/"">
                 <soap:Body>
-                    <AddEmployee xmlns=""http://tempuri.org/"">
+                   <DeleteUser xmlns=""http://tempuri.org/"">
                     <APIKey></APIKey>
                     <EmployeeCode>{employeeCode}</EmployeeCode>
                     <SerialNumber>{serialNumber}</SerialNumber>
                     <UserName>{_userName}</UserName>
                     <UserPassword>{_userPassword}</UserPassword>
                     <CommandId>1</CommandId>
-                    </AddEmployee>
+                   </DeleteUser>
                 </soap:Body>
             </soap:Envelope>";
 
@@ -563,7 +563,7 @@ namespace AutoStartApplication.APIs
                 block_status_in_machine = status
             };
             var serializePunchedData = JsonConvert.SerializeObject(model);
-           
+
 
             HttpContent content = new StringContent(serializePunchedData, Encoding.UTF8, "application/json");
 
