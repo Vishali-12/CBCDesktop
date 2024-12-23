@@ -2,6 +2,7 @@
 using AutoStartApplication.Common;
 using System;
 using System.Drawing;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace AutoStartApplication
@@ -14,7 +15,7 @@ namespace AutoStartApplication
         public Form1()
         {
             InitializeComponent();
-            checkInternetConnection = new CheckInternetConnection();    
+            checkInternetConnection = new CheckInternetConnection();
             this.Load += new System.EventHandler(this.Form1_Load);
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
@@ -48,13 +49,13 @@ namespace AutoStartApplication
 
         private async void Form1_Load(object sender, EventArgs e)
         {
-
+           
         }
 
 
         private void btnSync_Click(object sender, EventArgs e)
         {
-           
+
         }
 
         /// <summary>
@@ -64,10 +65,8 @@ namespace AutoStartApplication
         /// <param name="e"></param>
         private void btnHistory_Click(object sender, EventArgs e)
         {
-            this.UseWaitCursor = true;
             HistoryForm historyForm = new HistoryForm();
             historyForm.Show();
-            this.UseWaitCursor = false;
             this.Hide();
         }
 
@@ -84,12 +83,21 @@ namespace AutoStartApplication
                 SyncData syncData = new SyncData();
                 string fromDateTime = dateTimePicker1.Value.ToString("yyyy-MM-dd");
                 string toDateTime = dateTimePicker1.Value.AddDays(1).ToString("yyyy-MM-dd");
-                var data = await syncData.GetData(fromDateTime, toDateTime);
-                if (data !="")
-                {
-                    this.UseWaitCursor = false;
-                    MessageBox.Show(data);
-                }
+                //if (dateTimePicker1.Value <= DateTime.Now)
+                //{
+                    var data = await syncData.GetData(fromDateTime, toDateTime);
+                    if (data != "")
+                    {
+                        this.UseWaitCursor = false;
+                        AutoClosingMessageBox.Show(data, 3);
+                        var response = await syncData.AddEmployeesInBiometric();
+                        if (response != "")
+                        {
+                            MessageBox.Show(response);
+                        }
+
+                    }
+                //}
             }
             else
             {
@@ -98,6 +106,41 @@ namespace AutoStartApplication
             }
 
         }
+    }
 
+}
+public class AutoClosingMessageBox : Form
+{
+    private Label messageLabel;
+
+    public AutoClosingMessageBox(string message, int durationInSeconds)
+    {
+        // Initialize the form
+        this.Text = "Sync Status";
+        this.Size = new Size(300, 150);
+        this.StartPosition = FormStartPosition.CenterScreen;
+        this.MaximizeBox = false;
+        this.MinimizeBox = false;
+
+        // Add a label to display the message
+        messageLabel = new Label
+        {
+            Text = message,
+            AutoSize = false,
+            TextAlign = ContentAlignment.MiddleCenter,
+            Dock = DockStyle.Fill,
+            Font = new Font("Arial", 10, FontStyle.Regular),
+        };
+        this.Controls.Add(messageLabel);
+
+        // Set a timer to close the form after the specified duration
+        Task.Delay(durationInSeconds * 1000).ContinueWith(_ => this.Invoke((Action)this.Close));
+    }
+
+    public static void Show(string message, int durationInSeconds)
+    {
+        // Show the auto-closing message box
+        var messageBox = new AutoClosingMessageBox(message, durationInSeconds);
+        messageBox.ShowDialog();
     }
 }

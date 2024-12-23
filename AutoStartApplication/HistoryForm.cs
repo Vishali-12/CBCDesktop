@@ -32,6 +32,7 @@ namespace AutoStartApplication
             {
                 column.HeaderText = column.HeaderText.ToUpper();
             }
+          
         }
 
 

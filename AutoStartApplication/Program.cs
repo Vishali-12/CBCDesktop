@@ -3,10 +3,8 @@ using AutoStartApplication.Common;
 using AutoStartApplication.Models;
 using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http.Headers;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -90,7 +88,13 @@ namespace AutoStartApplication
 
                 if (!string.IsNullOrEmpty(data))
                 {
-                    MessageBox.Show(data, "Sync Status", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    AutoClosingMessageBox.Show(data, 3);
+                    var response = await syncData.AddEmployeesInBiometric();
+                    if (response != "")
+                    {
+                        MessageBox.Show(response);
+                    }
+                    //MessageBox.Show(data, "Sync Status", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
             else

@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Data.SqlTypes;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -38,7 +39,13 @@ namespace AutoStartApplication.APIs
 
 
         #region Get In and Out attendance records from Essl Api 
-
+        /// <summary>
+        /// Get attendance records from biometric machines.
+        /// </summary>
+        /// <param name="fromDateTime"></param>
+        /// <param name="toDateTime"></param>
+        /// <param name="serialNumber"></param>
+        /// <returns></returns>
         private async Task<List<string>> GetDataFromInAndOutAPI(string fromDateTime, string toDateTime, string serialNumber)
         {
             var extractedData = new List<string>();
@@ -50,7 +57,7 @@ namespace AutoStartApplication.APIs
                xmlns:soap=""http://schemas.xmlsoap.org/soap/envelope/"">
             <soap:Body>
             <GetTransactionsLog xmlns=""http://tempuri.org/"">
-             <FromDateTime>{fromDateTime}</FromDateTime>
+            <FromDateTime>{fromDateTime}</FromDateTime>
             <ToDateTime>{toDateTime}</ToDateTime>
             <SerialNumber>{serialNumber}</SerialNumber>
             <UserName>{_userName}</UserName>
@@ -59,9 +66,6 @@ namespace AutoStartApplication.APIs
              </GetTransactionsLog>
             </soap:Body>
             </soap:Envelope>";
-            //using (HttpClient client = new HttpClient())
-            //{
-            // Set the headers
             _httpClientEssl.DefaultRequestHeaders.Add("op", "GetTransactionsLog");
 
             // Create the request content
@@ -83,69 +87,107 @@ namespace AutoStartApplication.APIs
             return extractedData;
         }
 
+
+        /// <summary>
+        /// Sync data functionality
+        /// </summary>
+        /// <param name="fromDateTime"></param>
+        /// <param name="toDateTime"></param>
+        /// <returns></returns>
         public async Task<string> GetData(string fromDateTime, string toDateTime)
         {
             List<AttendanceRecordModel> attendanceLogs = new List<AttendanceRecordModel>();
-            //try
-            //{
-                var employees = await GetEmployees();
 
-                if (employees.data.Count > 0)
+            var blockedEmployeeList = await GetBlockdEmployees();
+            if (blockedEmployeeList.Count > 0)
+            {
+                foreach (var employee in blockedEmployeeList)
                 {
-                    foreach (var user in employees.data)
+                    if (employee.block_status_in_machine == 0)
                     {
-                        if (user.in_machine_status == 0)
+                        var inMachineDeleteStatus = await DeleteEmployeeFromBiometric(employee.employee_no, _inSerialNumber);
+                        if (inMachineDeleteStatus)
                         {
-                            // Call the API
-                            bool result = await AddEmployeeAsync(user.employee_no, user.name, _inSerialNumber);
-                            if (result)
-                            {
-                                user.in_machine_status = 1;
-                            }
-
+                            employee.block_status_in_machine = 1;
                         }
-                        if (user.out_machine_status == 0)
+                        var outMachineDeleteStatus = await DeleteEmployeeFromBiometric(employee.employee_no, _outSerialNumber);
+                        if (outMachineDeleteStatus)
                         {
-                            // Call the API
-                            bool result = await AddEmployeeAsync(user.employee_no, user.name, _outSerialNumber);
-                            if (result)
-                            {
-                                user.out_machine_status = 1;
-                            }
+                            employee.block_status_in_machine = 1;
                         }
-                        UpdateEmployeeStatusRequestModel model = new UpdateEmployeeStatusRequestModel
+                        if (inMachineDeleteStatus && outMachineDeleteStatus)
                         {
-                            id = user.id,
-                            in_machine_status = user.in_machine_status,
-                            out_machine_status = user.out_machine_status
-                        };
-
-                        UpdateEmployeeStatus(model);
-                    }
-
-                }
-                var inAttandenceRecords = await GetDataFromInAndOutAPI(fromDateTime, toDateTime, _inSerialNumber);
-                var outAttandenceRecords = await GetDataFromInAndOutAPI(fromDateTime, toDateTime, _outSerialNumber);
-                inAttandenceRecords.AddRange(outAttandenceRecords);
-                if (inAttandenceRecords != null)
-                {
-                    attendanceLogs = await GetPunchRecords(inAttandenceRecords);
-                    if (attendanceLogs != null && attendanceLogs.Count > 0)
-                    {
-                        var responseMessage = await SendFormDataAsync(attendanceLogs);
-                        if (responseMessage != "")
-                        {
-                            return responseMessage;
+                            var updateStatus = await UpdateEmployeeDeleteStatus(employee.id, employee.block_status_in_machine);
                         }
                     }
                 }
-                return "Error in sync data";
-            //}
-            //catch (Exception ex)
-            //{
-            //    return "";
-            //}
+            }
+            var inAttandenceRecords = await GetDataFromInAndOutAPI(fromDateTime, toDateTime, _inSerialNumber);
+            var outAttandenceRecords = await GetDataFromInAndOutAPI(fromDateTime, toDateTime, _outSerialNumber);
+            inAttandenceRecords.AddRange(outAttandenceRecords);
+            if (inAttandenceRecords != null)
+            {
+                attendanceLogs = await GetPunchRecords(inAttandenceRecords);
+                if (attendanceLogs != null && attendanceLogs.Count > 0)
+                {
+                    var responseMessage = await SendFormDataAsync(attendanceLogs);
+                    if (responseMessage != "")
+                    {
+                        return responseMessage;
+                    }
+                }
+            }
+            return "Error in sync data";
         }
+
+        public async Task<string> AddEmployeesInBiometric()
+        {
+            var employees = await GetEmployees();
+
+            if (employees.Count > 0)
+            {
+                foreach (var user in employees)
+                {
+                    if (user.in_machine_status == 0)
+                    {
+                        // Call the API
+                        bool result = await AddEmployeeAsync(user.employee_no, user.name, _inSerialNumber);
+                        if (result)
+                        {
+                            user.in_machine_status = 1;
+                        }
+
+                    }
+                    if (user.out_machine_status == 0)
+                    {
+                        // Call the API
+                        bool result = await AddEmployeeAsync(user.employee_no, user.name, _outSerialNumber);
+                        if (result)
+                        {
+                            user.out_machine_status = 1;
+                        }
+                    }
+                    UpdateEmployeeStatusRequestModel model = new UpdateEmployeeStatusRequestModel
+                    {
+                        id = user.id,
+                        in_machine_status = user.in_machine_status,
+                        out_machine_status = user.out_machine_status
+                    };
+
+                    UpdateEmployeeStatus(model);
+                }
+                return "data added successfully.";
+
+            }
+            else
+            {
+                return "";
+            }
+
+           
+
+        }
+
 
 
         /// <summary>
@@ -287,25 +329,25 @@ namespace AutoStartApplication.APIs
 
             var punchRecord = new PunchRecordRequestModel();
             punchRecord.attandanceLogs = attendanceRecords;
-           
-                var serializePunchedData = JsonConvert.SerializeObject(punchRecord);
 
-                HttpContent content = new StringContent(serializePunchedData, Encoding.UTF8, "application/json");
+            var serializePunchedData = JsonConvert.SerializeObject(punchRecord);
 
-                _httpClientCRM.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                // Send POST request
-                var response = await _httpClientCRM.PostAsync("store-attandance-log", content);
-                response.EnsureSuccessStatusCode();
+            HttpContent content = new StringContent(serializePunchedData, Encoding.UTF8, "application/json");
 
-                // Read the response
-                var responseString = await response.Content.ReadAsStringAsync();
-                var apiRespnse = JsonConvert.DeserializeObject<PostAttendanceRecordResponseModel>(responseString);
-                if (apiRespnse != null && apiRespnse.success)
-                {
-                    return apiRespnse.message;
-                }
+            _httpClientCRM.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            // Send POST request
+            var response = await _httpClientCRM.PostAsync("store-attandance-log", content);
+            response.EnsureSuccessStatusCode();
+
+            // Read the response
+            var responseString = await response.Content.ReadAsStringAsync();
+            var apiRespnse = JsonConvert.DeserializeObject<ApiResponseModel>(responseString);
+            if (apiRespnse != null && apiRespnse.success)
+            {
                 return apiRespnse.message;
-           
+            }
+            return apiRespnse.message;
+
         }
         #endregion
 
@@ -388,9 +430,9 @@ namespace AutoStartApplication.APIs
         /// </summary>
         /// <returns></returns>
 
-        public async Task<GetEmployeesResponseModel> GetEmployees()
+        public async Task<List<User>> GetEmployees()
         {
-            GetEmployeesResponseModel employees = null;
+            List<User> employees = new List<User>();
             var httpResponse = (_httpClientCRM.GetAsync("get-employee")).Result;
 
             if (httpResponse.IsSuccessStatusCode)
@@ -403,7 +445,7 @@ namespace AutoStartApplication.APIs
 
                     if (apiRespnse.status == (int)HttpStatusCode.OK)
                     {
-                        employees = apiRespnse;
+                        employees = apiRespnse.data;
                     }
                 }
             }
@@ -432,7 +474,7 @@ namespace AutoStartApplication.APIs
             response.EnsureSuccessStatusCode();
 
             var responseString = await response.Content.ReadAsStringAsync();
-            var apiRespnse = JsonConvert.DeserializeObject<PostAttendanceRecordResponseModel>(responseString);
+            var apiRespnse = JsonConvert.DeserializeObject<ApiResponseModel>(responseString);
             if (apiRespnse != null && apiRespnse.success)
             {
                 return apiRespnse.success;
@@ -441,6 +483,101 @@ namespace AutoStartApplication.APIs
         }
         #endregion
 
+
+        #region Retrieve employee records to delete in both machines.
+        /// <summary>
+        /// Retrieve employee records for enrollment in the biometric machine.
+        /// </summary>
+        /// <returns></returns>
+
+        public async Task<List<User>> GetBlockdEmployees()
+        {
+            List<User> employees = new List<User>();
+            var httpResponse = (_httpClientCRM.GetAsync("get-block-un-block-employee")).Result;
+
+            if (httpResponse.IsSuccessStatusCode)
+            {
+                var httpContent = await httpResponse.Content.ReadAsStringAsync();
+
+                if (!string.IsNullOrEmpty(httpContent))
+                {
+                    var apiRespnse = JsonConvert.DeserializeObject<GetEmployeesResponseModel>(httpContent);
+
+                    if (apiRespnse.status == (int)HttpStatusCode.OK)
+                    {
+                        employees = apiRespnse.data;
+                    }
+                }
+            }
+            return employees;
+        }
+        #endregion
+
+
+        #region Delete Employee
+        /// <summary>
+        /// Delete employee from both In or Out machine
+        /// </summary>
+        /// <param name="employeeCode"></param>
+        /// <param name="serialNumber"></param>
+        /// <returns></returns>
+        private async Task<bool> DeleteEmployeeFromBiometric(string employeeCode, string serialNumber)
+        {
+            string soapRequest = $@"<?xml version=""1.0"" encoding=""utf-8""?>
+            <soap:Envelope xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance""
+                   xmlns:xsd=""http://www.w3.org/2001/XMLSchema""
+                   xmlns:soap=""http://schemas.xmlsoap.org/soap/envelope/"">
+                <soap:Body>
+                    <AddEmployee xmlns=""http://tempuri.org/"">
+                    <APIKey></APIKey>
+                    <EmployeeCode>{employeeCode}</EmployeeCode>
+                    <SerialNumber>{serialNumber}</SerialNumber>
+                    <UserName>{_userName}</UserName>
+                    <UserPassword>{_userPassword}</UserPassword>
+                    <CommandId>1</CommandId>
+                    </AddEmployee>
+                </soap:Body>
+            </soap:Envelope>";
+
+            var content = new StringContent(soapRequest, System.Text.Encoding.UTF8, "text/xml");
+            var response = await _httpClientEssl.PostAsync("?op=DeleteUser", content);
+            var result = response.IsSuccessStatusCode;
+            return result;
+        }
+        #endregion
+
+
+        #region Send employee delete status
+
+        /// <summary>
+        ///   Send the status of the employee being added to both the In and Out machines.
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        public async Task<bool> UpdateEmployeeDeleteStatus(int employeeId, int status)
+        {
+            var model = new DeleteStatusRequestModel
+            {
+                id = employeeId,
+                block_status_in_machine = status
+            };
+            var serializePunchedData = JsonConvert.SerializeObject(model);
+           
+
+            HttpContent content = new StringContent(serializePunchedData, Encoding.UTF8, "application/json");
+
+            var response = await _httpClientCRM.PostAsync("update-block-un-block-status", content);
+            response.EnsureSuccessStatusCode();
+
+            var responseString = await response.Content.ReadAsStringAsync();
+            var apiRespnse = JsonConvert.DeserializeObject<ApiResponseModel>(responseString);
+            if (apiRespnse != null && apiRespnse.success)
+            {
+                return apiRespnse.success;
+            }
+            return false;
+        }
+        #endregion
 
     }
 
