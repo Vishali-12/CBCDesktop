@@ -3,7 +3,6 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
-using System.Data.SqlTypes;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -136,6 +135,10 @@ namespace AutoStartApplication.APIs
                     {
                         return responseMessage;
                     }
+                }
+                else
+                {
+                    return "No records found.";
                 }
             }
             return "Error in sync data";

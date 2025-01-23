@@ -3,6 +3,7 @@ using AutoStartApplication.Common;
 using AutoStartApplication.Models;
 using Newtonsoft.Json;
 using System;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -80,15 +81,17 @@ namespace AutoStartApplication
             {
                 DateTime yesterdayDate;
                 SyncData syncData = new SyncData();
-                if (DateTime.Now.DayOfWeek == DayOfWeek.Monday)
+                var history = await syncData.GetAttendanceLogHistory();
+                var unsyncedDates = history.Where(x=> x.status == "No").ToList();
+
+                foreach (var rec in unsyncedDates)
                 {
-                    yesterdayDate = DateTime.Today.AddDays(-3);
+                    var toDate = DateTime.Parse(rec.date).AddDays(1).ToString("yyyy-MM-dd") ;
+                    var result = await syncData.GetData(rec.date, toDate);
                 }
-                else
-                {
-                    yesterdayDate = DateTime.Today.AddDays(-1);
-                }
-              
+
+                 yesterdayDate = DateTime.Today.AddDays(-1);
+            
                 string fromDateTime = yesterdayDate.ToString("yyyy-MM-dd");
                 string toDateTime = DateTime.Now.ToString("yyyy-MM-dd");
 
