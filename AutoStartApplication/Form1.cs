@@ -4,6 +4,7 @@ using System;
 using System.Drawing;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Timers;
 
 namespace AutoStartApplication
 {
@@ -11,6 +12,7 @@ namespace AutoStartApplication
     {
         private NotifyIcon notifyIcon;
         private readonly CheckInternetConnection checkInternetConnection;
+        private System.Timers.Timer autoSyncTimer; // Add a timer for periodic sync
 
         public Form1()
         {
@@ -20,6 +22,7 @@ namespace AutoStartApplication
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
             ConfigureNotifyIcon();
+            ConfigureAutoSyncTimer(); // Configure the auto-sync timer
         }
 
         private void ConfigureNotifyIcon()
@@ -49,7 +52,7 @@ namespace AutoStartApplication
 
         private async void Form1_Load(object sender, EventArgs e)
         {
-           
+            autoSyncTimer.Start();
         }
 
 
@@ -111,6 +114,50 @@ namespace AutoStartApplication
             }
 
         }
+        private void ConfigureAutoSyncTimer()
+        {
+            autoSyncTimer = new System.Timers.Timer(300000);// Set interval to 10 minutes (600,000 ms)
+            autoSyncTimer = new System.Timers.Timer(300000);// Set interval to 10 minutes (600,000 ms)
+            autoSyncTimer.Elapsed += AutoSyncTimer_Elapsed;
+            autoSyncTimer.AutoReset = true; // Ensure the timer restarts after each interval
+        }
+        private async void AutoSyncTimer_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            if (checkInternetConnection.IsConnectedToInternet())
+            {
+                SyncData syncData = new SyncData();
+
+
+                string fromDateTime = DateTime.Now.ToString("yyyy-MM-dd");
+                string toDateTime = DateTime.Today.AddDays(1).ToString("yyyy-MM-dd");
+
+                //string fromDateTime = DateTime.Now.AddMinutes(-10).ToString("yyyy-MM-dd HH:mm:ss");
+                //string toDateTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                try
+                {
+                    var data = await syncData.GetData(fromDateTime, toDateTime);
+                    if (!string.IsNullOrEmpty(data))
+                    {
+                        AutoClosingMessageBox.Show($"Auto-sync completed: {data}", 3);
+                        var response = await syncData.AddEmployeesInBiometric();
+                        if (!string.IsNullOrEmpty(response))
+                        {
+                            MessageBox.Show(response);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Handle any exceptions that occur during the sync process
+                    MessageBox.Show($"Error during auto-sync: {ex.Message}");
+                }
+            }
+            else
+            {
+                MessageBox.Show("Auto-sync failed: No internet connection.");
+            }
+        }
+     
     }
 
 }

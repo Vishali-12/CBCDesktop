@@ -79,7 +79,7 @@ namespace AutoStartApplication
         {
             if (checkInternetConnection.IsConnectedToInternet())
             {
-                DateTime yesterdayDate;
+                DateTime tomorrowDate;
                 SyncData syncData = new SyncData();
                 var history = await syncData.GetAttendanceLogHistory();
                 var unsyncedDates = history.Where(x=> x.status == "No").ToList();
@@ -90,10 +90,10 @@ namespace AutoStartApplication
                     var result = await syncData.GetData(rec.date, toDate);
                 }
 
-                 yesterdayDate = DateTime.Today.AddDays(-1);
+                 tomorrowDate = DateTime.Today.AddDays(1);
             
-                string fromDateTime = yesterdayDate.ToString("yyyy-MM-dd");
-                string toDateTime = DateTime.Now.ToString("yyyy-MM-dd");
+                string fromDateTime = DateTime.Now.ToString("yyyy-MM-dd");
+                string toDateTime = tomorrowDate.ToString("yyyy-MM-dd");
 
                 var data = await syncData.GetData(fromDateTime, toDateTime);
 
