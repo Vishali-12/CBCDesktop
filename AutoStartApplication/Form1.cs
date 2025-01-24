@@ -116,8 +116,7 @@ namespace AutoStartApplication
         }
         private void ConfigureAutoSyncTimer()
         {
-            autoSyncTimer = new System.Timers.Timer(300000);// Set interval to 10 minutes (600,000 ms)
-            autoSyncTimer = new System.Timers.Timer(300000);// Set interval to 10 minutes (600,000 ms)
+            autoSyncTimer = new System.Timers.Timer(300000);// Set interval to 5 minutes (300,000 ms)
             autoSyncTimer.Elapsed += AutoSyncTimer_Elapsed;
             autoSyncTimer.AutoReset = true; // Ensure the timer restarts after each interval
         }
