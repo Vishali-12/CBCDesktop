@@ -154,7 +154,6 @@ namespace AutoStartApplication.APIs
                 {
                     if (user.in_machine_status == 0)
                     {
-                        // Call the API
                         bool result = await AddEmployeeAsync(user.employee_no, user.name, _inSerialNumber);
                         if (result)
                         {
