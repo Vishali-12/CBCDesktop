@@ -116,7 +116,7 @@ namespace AutoStartApplication
         }
         private void ConfigureAutoSyncTimer()
         {
-            autoSyncTimer = new System.Timers.Timer(30000); // Set interval to 30 seconds (30,000 ms)
+            autoSyncTimer = new System.Timers.Timer(300000); // Set interval to 30 seconds (30,000 ms)
             autoSyncTimer.Elapsed += AutoSyncTimer_Elapsed;
             autoSyncTimer.AutoReset = true; // Ensure the timer restarts after each interval
         }
