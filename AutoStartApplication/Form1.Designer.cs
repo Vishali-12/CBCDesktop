@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.syncbtn = new System.Windows.Forms.Button();
             this.dateTimePicker1 = new System.Windows.Forms.DateTimePicker();
             this.btnSync = new System.Windows.Forms.Button();
@@ -56,6 +57,7 @@
             // 
             // btnSync
             // 
+            this.btnSync.Enabled = false;
             this.btnSync.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnSync.Location = new System.Drawing.Point(91, 52);
             this.btnSync.Name = "btnSync";
@@ -84,10 +86,11 @@
             this.Controls.Add(this.btnSync);
             this.Controls.Add(this.dateTimePicker1);
             this.Controls.Add(this.syncbtn);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MaximizeBox = false;
             this.Name = "Form1";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "Form1";
+            this.Text = "Dashboard Screen";
             this.ResumeLayout(false);
 
         }
